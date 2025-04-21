@@ -35,6 +35,9 @@ set(CORE_HEADERS
     ${CMAKE_SOURCE_DIR}/TD.h
     ${CMAKE_SOURCE_DIR}/taggame/TagGame.h
     ${CMAKE_SOURCE_DIR}/taggame/Communicator.h
+    ${CMAKE_SOURCE_DIR}/FunctionApproximator.h
+    ${CMAKE_SOURCE_DIR}/LinearFunctionApproximator.h
+    ${CMAKE_SOURCE_DIR}/NStepTD.h
 )
 
 set(CORE_SOURCES

@@ -6,6 +6,7 @@
 #include <tuple>
 #include <vector>
 
+#include "FunctionApproximator.h"
 #include "MDP.h"
 
 template <typename State, typename Action>
@@ -17,10 +18,9 @@ class MDPSolver {
 
     MDP<State, Action> &m_mdp;
     bool m_strict;
-    std::mt19937 m_generator;
 
    public:
-    MDPSolver() : m_strict(false), m_generator(std::random_device{}()) {}
+    MDPSolver() : m_strict(false) {}
     virtual ~MDPSolver() = default;
 
     explicit MDPSolver(MDP<State, Action> &mdp) : m_mdp(mdp) {}
@@ -72,74 +72,13 @@ class MDPSolver {
         return it->second;
     }
 
-    std::tuple<Action, Return> Q_best_action(const State &s) {
-        try {
-            Return max_return = std::numeric_limits<Return>::lowest();
-            Action maximizing_action;
-            for (Action a : this->m_mdp.A(s)) {
-                Return candidate_return = this->Q(s, a);
-                if (candidate_return > max_return) {
-                    max_return = candidate_return;
-                    maximizing_action = a;
-                }
-            }
-            return {maximizing_action, max_return};
-        } catch (const std::out_of_range &) {
-            return Q_best_action_fallback(s);
-        }
-    }
-
-    // This is the fallback used when the A(s) state-action space is not pre-initialized.
-    std::tuple<Action, Return> Q_best_action_fallback(const State &s) {
-        Return max_return = std::numeric_limits<Return>::lowest();
-        Action maximizing_action;
-
-        for (const auto &[state_action, value] : this->m_Q) {
-            if (state_action.first == s) {
-                if (value > max_return) {
-                    max_return = value;
-                    maximizing_action = state_action.second;
-                }
-            }
-        }
-
-        return {maximizing_action, max_return};
-    }
-
-    Action random_action(const State &s) {
-        auto actions = this->m_mdp.A(s);
-        if (!actions.empty()) {
-            std::uniform_int_distribution<int> dist(0, actions.size() - 1);
-            return actions[dist(m_generator)];
-        }
-
-        return random_action_fallback(s);  // Use fallback if no actions are available
-    }
-
-    Action random_action_fallback(const State &s) {
-        std::vector<Action> available_actions;
-
-        for (const auto &[state_action, value] : this->m_Q) {
-            if (state_action.first == s) {
-                available_actions.push_back(state_action.second);
-            }
-        }
-
-        if (available_actions.empty()) {
-            throw std::runtime_error("random_action_fallback: No actions found in Q-table for the given state.");
-        }
-
-        std::uniform_int_distribution<int> dist(0, available_actions.size() - 1);
-        return available_actions[dist(m_generator)];
-    }
-
     std::unordered_map<State, Action, StateHash<State>> get_optimal_policy() {
         std::unordered_map<State, Action, StateHash<State>> optimal_policy;
 
         for (const auto &[state_action, _] : this->m_Q) {
             const State &s = state_action.first;
             if (optimal_policy.find(s) == optimal_policy.end()) {
-                auto [best_action, _] = this->Q_best_action(s);
+                auto [best_action, _] = this->best_action(s);
                 optimal_policy[s] = best_action;
             }
         }

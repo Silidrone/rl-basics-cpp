@@ -12,7 +12,7 @@ class DerivedDeterministicPolicy : public DerivedPolicy<State, Action> {
             throw std::logic_error("initialize must be called first!");
         }
 
-        auto [best_action, _] = this->m_mdp_solver->Q_best_action(s);
+        auto [best_action, _] = this->m_mdp_solver->best_action(s);
         return best_action;
     }
 };

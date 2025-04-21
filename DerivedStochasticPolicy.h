@@ -27,7 +27,7 @@ class DerivedStochasticPolicy : public DerivedPolicy<State, Action> {
         if (distribution(m_generator) < m_epsilon) {
             return this->m_mdp_solver->random_action(s);
         } else {
-            auto [best_action, _] = this->m_mdp_solver->Q_best_action(s);
+            auto [best_action, _] = this->m_mdp_solver->best_action(s);
             return best_action;
         }
     }

@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "FunctionApproximator.h"
 #include "m_types.h"
 
 static const std::string output_dir = "output/";
@@ -244,3 +245,129 @@ class Policy;
 
 template <typename State, typename Action>
 std::vector<std::tuple<State, Action, Reward>> generate_episode(MDP<State, Action>&, Policy<State, Action>*);
+
+template <typename State, typename Action>
+std::tuple<Action, Return> greedy_action_approximated(MDP<State, Action>& mdp,
+                                                      FunctionApproximator<State>* approximator, const State& s) {
+    if (!approximator) {
+        throw std::logic_error("FunctionApproximator pointer is null.");
+    }
+
+    const auto& actions = mdp.A(s);
+    if (actions.empty()) {
+        throw std::runtime_error("No available actions from current state.");
+    }
+
+    Action best_action = actions[0];
+    double best_value = -std::numeric_limits<double>::infinity();
+
+    for (const Action& a : actions) {
+        State next_state = mdp.step(s, a).first;
+        double value = approximator->predict(next_state);
+
+        if (value > best_value) {
+            best_value = value;
+            best_action = a;
+        }
+    }
+
+    return {best_action, best_value};
+}
+
+#include "MDPSolver.h"
+
+enum class GreedyStrategy { DETERMINISTIC, STOCHASTIC, FUNCTION_APPROXIMATED };
+
+template <typename State, typename Action>
+std::tuple<Action, Return> greedy_action_deterministic(MDPSolver<State, Action>& mdp_solver, const State& s) {
+    Return max_return = std::numeric_limits<Return>::lowest();
+    Action maximizing_action;
+
+    for (const auto& [state_action, value] : mdp_solver->m_Q) {
+        if (state_action.first == s) {
+            if (value > max_return) {
+                max_return = value;
+                maximizing_action = state_action.second;
+            }
+        }
+    }
+
+    return {maximizing_action, max_return};
+}
+
+template <typename State, typename Action>
+std::tuple<Action, Return> greedy_action_stochastic(MDPSolver<State, Action>& mdp_solver, const State& s) {
+    Return max_return = std::numeric_limits<Return>::lowest();
+    Action maximizing_action;
+    for (Action a : mdp_solver.mdp().A(s)) {
+        Return candidate_return = mdp_solver.Q(s, a);
+        if (candidate_return > max_return) {
+            max_return = candidate_return;
+            maximizing_action = a;
+        }
+    }
+
+    return {maximizing_action, max_return};
+}
+
+// TODO: I do not like this. MDPSolver and Policy as well as these "greedy_action" functions need to be refactored.
+template <typename State, typename Action>
+std::tuple<Action, Return> greedy_action(GreedyStrategy strategy, const State& s, MDPSolver<State, Action>& mdp_solver,
+                                         FunctionApproximator<State>* approximator = nullptr) {
+    switch (strategy) {
+        case GreedyStrategy::DETERMINISTIC:
+            return greedy_action_deterministic(mdp_solver, s);
+
+        case GreedyStrategy::STOCHASTIC:
+            return greedy_action_stochastic(mdp_solver, s);
+
+        case GreedyStrategy::FUNCTION_APPROXIMATED:
+            if (!approximator) {
+                throw std::invalid_argument("Approximator required for FUNCTION_APPROXIMATED strategy.");
+            }
+            return greedy_action_approximated(mdp_solver.mdp(), approximator, s);
+
+        default:
+            throw std::invalid_argument("Unknown greedy strategy.");
+    }
+}
+
+template <typename State, typename Action>
+Action random_action(MDPSolver<State, Action>& mdp_solver, const State& s) {
+    std::mt19937 generator{std::random_device{}()};
+    auto actions = mdp_solver.mdp().A(s);
+    if (!actions.empty()) {
+        std::uniform_int_distribution<int> dist(0, actions.size() - 1);
+        return actions[dist(generator)];
+    }
+
+    std::vector<Action> q_derived_actions;
+
+    for (const auto& [state_action, value] : mdp_solver.m_Q) {
+        if (state_action.first == s) {
+            q_derived_actions.push_back(state_action.second);
+        }
+    }
+
+    if (q_derived_actions.empty()) {
+        throw std::runtime_error("random_action_fallback: No actions found in Q-table for the given state.");
+    }
+
+    std::uniform_int_distribution<int> dist(0, q_derived_actions.size() - 1);
+    return q_derived_actions[dist(generator)];
+}
+
+template <typename State, typename Action>
+std::unordered_map<State, Action, StateHash<State>> get_optimal_policy(MDPSolver<State, Action>& mdp_solver) {
+    std::unordered_map<State, Action, StateHash<State>> optimal_policy;
+
+    for (const auto& [state_action, _] : mdp_solver->m_Q) {
+        const State& s = state_action.first;
+        if (optimal_policy.find(s) == optimal_policy.end()) {
+            auto [best_action, _] = greedy_action(s);
+            optimal_policy[s] = best_action;
+        }
+    }
+
+    return optimal_policy;
+}

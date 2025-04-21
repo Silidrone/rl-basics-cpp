@@ -36,7 +36,7 @@ bool QValuePolicyIteration<State, Action>::policy_improvement() {
     bool policy_stable = true;
     for (State &s : this->m_mdp.S()) {
         const Return old_value = this->Q(s, this->m_policy.sample(s));
-        auto [maximizing_action, max_return] = this->Q_best_action(s);
+        auto [maximizing_action, max_return] = this->best_action(s);
 
         this->m_policy.set(s, maximizing_action);
 
