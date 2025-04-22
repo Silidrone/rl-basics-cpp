@@ -35,7 +35,7 @@ inline int windygridworld_main() {
     auto approximator = new LinearFunctionApproximator<State>(feature_dim, feature_extractor);
 
     // --- Run n-step TD learning
-    NStepTD<State, Action> mdp_solver(environment, &policy, approximator, DISCOUNT_RATE, N_OF_EPISODES, ALPHA, N_STEP);
+    NStepTD<State, Action> mdp_solver(&environment, &policy, approximator, DISCOUNT_RATE, N_OF_EPISODES, ALPHA, N_STEP);
 
     mdp_solver.initialize();
 

@@ -12,8 +12,8 @@ class GPI : public MDPSolver<State, Action> {
     virtual bool policy_improvement() { return false; };
 
    public:
-    GPI(MDP<State, Action>& mdp_core, const double discount_rate, const long double policy_threshold)
-        : MDPSolver<State, Action>(mdp_core), m_discount_rate(discount_rate), m_policy_threshold(policy_threshold) {}
+    GPI(MDP<State, Action>* mdp_core, Policy<State, Action>* policy, const double discount_rate, const long double policy_threshold)
+        : MDPSolver<State, Action>(mdp_core, policy), m_discount_rate(discount_rate), m_policy_threshold(policy_threshold) {}
 
     virtual void policy_iteration() {
         bool policy_stable;

@@ -11,7 +11,6 @@ class MC_FV : public GPI<State, Action> {
    protected:
     std::unordered_map<std::pair<State, Action>, int, StateActionPairHash<State, Action>> N;
     std::unordered_map<State, std::vector<Return>, StateHash<State>> m_returns;
-    Policy<State, Action>* m_policy;
     Return avg_returns(const State& s) {
         if (m_returns.find(s) == m_returns.end()) {
             throw std::runtime_error("State not found in returns.");
@@ -33,9 +32,9 @@ class MC_FV : public GPI<State, Action> {
     }
 
    public:
-    MC_FV(MDP<State, Action>& mdp_core, Policy<State, Action>* policy, const double discount_rate,
+    MC_FV(MDP<State, Action>* mdp_core, Policy<State, Action>* policy, const double discount_rate,
           const double number_of_episodes)
-        : GPI<State, Action>(mdp_core, discount_rate, number_of_episodes), m_policy(policy) {
+        : GPI<State, Action>(mdp_core, policy, discount_rate, number_of_episodes) {
         policy->initialize(this);
     };
 
@@ -43,7 +42,7 @@ class MC_FV : public GPI<State, Action> {
         int episode_n = 0;
         do {
             episode_n++;
-            auto episode = generate_episode(this->m_mdp, this->m_policy);
+            auto episode = this->generate_episode();
 
             std::unordered_map<std::pair<State, Action>, int, StateActionPairHash<State, Action>>
                 first_occurence_index_map;

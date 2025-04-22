@@ -20,7 +20,7 @@ inline int windygridworld_main() {
 
     DerivedStochasticPolicy<State, Action> policy(EPSILON);
 
-    TD<State, Action> mdp_solver(environment, &policy, DISCOUNT_RATE, N_OF_EPISODES, ALPHA);
+    TD<State, Action> mdp_solver(&environment, &policy, DISCOUNT_RATE, N_OF_EPISODES, ALPHA);
     mdp_solver.initialize();
 
     double time_taken = benchmark([&]() { mdp_solver.policy_iteration(); });

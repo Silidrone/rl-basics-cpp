@@ -46,7 +46,7 @@ inline int blackjack_main() {
 
     DerivedStochasticPolicy<State, Action> policy(0.15);
 
-    MC_FV<State, Action> mdp_solver(environment, &policy, DISCOUNT_RATE, N_OF_EPISODES);
+    MC_FV<State, Action> mdp_solver(&environment, &policy, DISCOUNT_RATE, N_OF_EPISODES);
     mdp_solver.initialize();
 
     double time_taken = benchmark([&]() { mdp_solver.policy_iteration(); });

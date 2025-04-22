@@ -2,6 +2,8 @@
 
 #include <m_utils.h>
 
+#include <chrono>
+#include <random>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -49,5 +51,16 @@ class MDP {
         if (m_is_continuous) return false;
 
         return std::find(m_T.begin(), m_T.end(), state) != m_T.end();
+    }
+
+    Action random_action(const State& s) const {
+        static std::mt19937 generator{std::random_device{}()};
+        auto actions = this->A(s);
+        if (actions.empty()) {
+            throw std::runtime_error("No available actions for the given state");
+        }
+
+        std::uniform_int_distribution<int> dist(0, actions.size() - 1);
+        return actions[dist(generator)];
     }
 };

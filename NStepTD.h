@@ -11,20 +11,18 @@
 template <typename State, typename Action>
 class NStepTD : public GPI<State, Action> {
    private:
-    Policy<State, Action>* m_policy;
     FunctionApproximator<State>* approximator;
     const double step_size;
     const int n;
 
    public:
-    NStepTD(MDP<State, Action>& mdp_core, Policy<State, Action>* policy, FunctionApproximator<State>* approximator,
+    NStepTD(MDP<State, Action>* mdp_core, Policy<State, Action>* policy, FunctionApproximator<State>* approximator,
             double discount_rate, long double policy_threshold, double step_size, int n)
-        : GPI<State, Action>(mdp_core, discount_rate, policy_threshold),
-          m_policy(policy),
+        : GPI<State, Action>(mdp_core, policy, discount_rate, policy_threshold),
           approximator(approximator),
           step_size(step_size),
           n(n) {
-        m_policy->initialize(this);
+        policy->initialize(this);
     }
 
     void td_main() {
@@ -34,16 +32,16 @@ class NStepTD : public GPI<State, Action> {
             int T = std::numeric_limits<int>::max();
             int t = 0;
 
-            states[0] = this->m_mdp.reset();
+            states[0] = this->m_mdp->reset();
 
             while (true) {
                 // std::cerr << "t=" << t << " s=" << states[t % (n + 1)].first << "," << states[t % (n + 1)].second << "\n";
                 if (t < T) {
-                    Action a = m_policy->sample(states[t % (n + 1)]);
-                    auto [s_next, r] = this->m_mdp.step(states[t % (n + 1)], a);
+                    Action a = this->m_policy->sample(states[t % (n + 1)]);
+                    auto [s_next, r] = this->m_mdp->step(states[t % (n + 1)], a);
                     rewards[(t + 1) % (n + 1)] = r;
                     states[(t + 1) % (n + 1)] = s_next;
-                    if (this->m_mdp.is_terminal(s_next)) {
+                    if (this->m_mdp->is_terminal(s_next)) {
                         T = t + 1;
                     }
                 }

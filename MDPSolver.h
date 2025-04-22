@@ -10,32 +10,35 @@
 #include "MDP.h"
 
 template <typename State, typename Action>
+class Policy;
+
+template <typename State, typename Action>
 class MDPSolver {
    protected:
     std::unordered_map<State, Return, StateHash<State>> m_v{};  // State-value v function
     std::unordered_map<std::pair<State, Action>, Return, StateActionPairHash<State, Action>>
         m_Q;  // Action-value Q function
 
-    MDP<State, Action> &m_mdp;
+    MDP<State, Action> *m_mdp;
+    Policy<State, Action> *m_policy;
     bool m_strict;
 
    public:
-    MDPSolver() : m_strict(false) {}
     virtual ~MDPSolver() = default;
 
-    explicit MDPSolver(MDP<State, Action> &mdp) : m_mdp(mdp) {}
+    MDPSolver(MDP<State, Action> *mdp, Policy<State, Action> *policy) : m_mdp(mdp), m_policy(policy), m_strict(false) {}
 
     virtual void initialize() {
-        for (const State &s : this->m_mdp.S()) {
+        for (const State &s : this->m_mdp->S()) {
             m_v[s] = 0;
-            for (const Action &a : this->m_mdp.A(s)) {
+            for (const Action &a : this->m_mdp->A(s)) {
                 m_Q[{s, a}] = 0;
             }
         }
 
-        for (const State &s : this->m_mdp.T()) {
+        for (const State &s : this->m_mdp->T()) {
             m_v[s] = 0;
-            for (const Action &a : this->m_mdp.A(s)) {
+            for (const Action &a : this->m_mdp->A(s)) {
                 m_Q[{s, a}] = 0;
             }
         }
@@ -107,5 +110,22 @@ class MDPSolver {
         return true;
     }
 
-    MDP<State, Action> &mdp() { return m_mdp; }
+    MDP<State, Action> *mdp() { return m_mdp; }
+    Policy<State, Action> *policy() { return m_policy; }
+
+    std::vector<std::tuple<State, Action, Reward>> generate_episode() {
+        std::vector<std::tuple<State, Action, Reward>> episode;
+        State state = m_mdp->reset();
+        bool done = false;
+
+        while (!done) {
+            Action action = m_policy->sample(state);
+            auto [next_state, reward] = m_mdp->step(state, action);
+            episode.emplace_back(state, action, reward);
+            state = next_state;
+            done = m_mdp->is_terminal(state);
+        }
+
+        return episode;
+    }
 };

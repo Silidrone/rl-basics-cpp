@@ -23,7 +23,7 @@ static const std::string POLICY_INPUT_FILE = "taggame_optimal_policy.json";
 inline int taggame_main() {
     TagGame environment;
     DerivedStochasticPolicy<State, Action> policy(POLICY_EPSILON);
-    TD<State, Action> mdp_solver(environment, &policy, DISCOUNT_RATE, N_OF_EPISODES, TD_ALPHA);
+    TD<State, Action> mdp_solver(&environment, &policy, DISCOUNT_RATE, N_OF_EPISODES, TD_ALPHA);
 
     environment.initialize();
     mdp_solver.initialize();
