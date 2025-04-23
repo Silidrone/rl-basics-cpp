@@ -5,13 +5,14 @@
 #include <functional>
 #include <iostream>
 
-#include "DeterministicPolicy.h"
 #include "MC_FV.h"
+#include "ValueStrategy.h"
 #include "barto_sutton_exercises/5_1/Blackjack.h"
+#include "serialization.h"
 
 static constexpr int N_OF_EPISODES = 100000;
 
-inline void plot_v_f(MDPSolver<State, Action>& mdp_solver, bool usable_ace_flag) {
+inline void plot_v_f(TabularValueStrategy<State, Action>& value_strategy, bool usable_ace_flag) {
     matplot::vector_2d x, y, z;
 
     for (int player_sum = MIN_PLAYER_SUM; player_sum < MAX_SUM; ++player_sum) {
@@ -22,7 +23,7 @@ inline void plot_v_f(MDPSolver<State, Action>& mdp_solver, bool usable_ace_flag)
             y_row.push_back(dealer_face_up);
 
             State state = {player_sum, dealer_face_up, usable_ace_flag};
-            z_row.push_back(mdp_solver.v(state));
+            z_row.push_back(value_strategy.v(state));
         }
 
         x.push_back(x_row);
@@ -60,16 +61,19 @@ inline int blackjack_main() {
 
     DeterministicPolicy<State, Action> blackjack_player_policy;
 
-    MC_FV<State, Action> mdp_solver(environment, &blackjack_player_policy, DISCOUNT_RATE, N_OF_EPISODES);
-    mdp_solver.initialize();
+    auto value_strategy = new TabularValueStrategy<State, Action>();
+    value_strategy->initialize(&environment);
+
+    MC_FV<State, Action> mdp_solver(&environment, &blackjack_player_policy, value_strategy, DISCOUNT_RATE,
+                                    N_OF_EPISODES);
 
     construct_player_policy(blackjack_player_policy);
     double time_taken = benchmark([&]() { mdp_solver.value_estimation(); });
 
     std::cout << "Time taken: " << time_taken << std::endl;
 
-    serialize_to_json(mdp_solver.get_v(), "blackjack-value-function-estimation.json");
-    plot_v_f(mdp_solver, false);
+    save_v_values(*value_strategy, "blackjack-value-function-estimation.json");
+    plot_v_f(*value_strategy, false);
 
     return 0;
 }

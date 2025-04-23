@@ -1,3 +1,5 @@
+#pragma once
+
 #include <matplot/matplot.h>
 
 #include <chrono>
@@ -6,11 +8,12 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 
-#include "DerivedStochasticPolicy.h"
-#include "DeterministicPolicy.h"
 #include "MDPSolver.h"
+#include "Policy.h"
 #include "TD.h"
+#include "ValueStrategy.h"
 #include "m_utils.h"
+#include "serialization.h"
 #include "taggame/TagGame.h"
 
 constexpr double DISCOUNT_RATE = 1;
@@ -22,12 +25,16 @@ static const std::string POLICY_INPUT_FILE = "taggame_optimal_policy.json";
 
 inline int taggame_main() {
     TagGame environment;
-    DerivedStochasticPolicy<State, Action> policy(POLICY_EPSILON);
-    TD<State, Action> mdp_solver(&environment, &policy, DISCOUNT_RATE, N_OF_EPISODES, TD_ALPHA);
+
+    // Create a TabularValueStrategy
+    auto value_strategy = new TabularValueStrategy<State, Action>();
+    value_strategy->initialize(&environment);
+
+    EpsilonGreedyPolicy<State, Action> policy(value_strategy, POLICY_EPSILON);
+    TD<State, Action> mdp_solver(&environment, &policy, value_strategy, DISCOUNT_RATE, N_OF_EPISODES, TD_ALPHA);
 
     environment.initialize();
-    mdp_solver.initialize();
-    mdp_solver.load_Q_from_file(output_dir + Q_INPUT_FILE);
+    load_q_values(*value_strategy, output_dir + Q_INPUT_FILE);
 
     try {
         mdp_solver.policy_iteration();
@@ -38,7 +45,7 @@ inline int taggame_main() {
         std::cerr << "An unknown exception occurred during policy iteration. Ignoring and proceeding." << std::endl;
     }
 
-    serialize_to_json(mdp_solver.get_Q(), Q_INPUT_FILE);
-    serialize_to_json(mdp_solver.get_optimal_policy(), POLICY_INPUT_FILE);
+    save_q_values(*value_strategy, Q_INPUT_FILE);
+    serialize_to_json(value_strategy->get_optimal_policy(), POLICY_INPUT_FILE);
     return 0;
 }

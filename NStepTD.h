@@ -11,18 +11,19 @@
 template <typename State, typename Action>
 class NStepTD : public GPI<State, Action> {
    private:
-    FunctionApproximator<State>* approximator;
+    ApproximationValueStrategy<State, Action>* m_value_strategy;
     const double step_size;
     const int n;
 
    public:
-    NStepTD(MDP<State, Action>* mdp_core, Policy<State, Action>* policy, FunctionApproximator<State>* approximator,
+    NStepTD(MDP<State, Action>* mdp_core, Policy<State, Action>* policy, 
+            ApproximationValueStrategy<State, Action>* value_strategy,
             double discount_rate, long double policy_threshold, double step_size, int n)
         : GPI<State, Action>(mdp_core, policy, discount_rate, policy_threshold),
-          approximator(approximator),
+          m_value_strategy(value_strategy),
           step_size(step_size),
           n(n) {
-        policy->initialize(this);
+        policy->initialize(mdp_core, value_strategy);
     }
 
     void td_main() {
@@ -54,10 +55,10 @@ class NStepTD : public GPI<State, Action> {
                     }
 
                     if (t < T) {
-                        G += std::pow(this->m_discount_rate, n) * approximator->predict(states[t % (n + 1)]);
+                        G += std::pow(this->m_discount_rate, n) * m_value_strategy->get_approximator()->predict(states[t % (n + 1)]);
                     }
 
-                    approximator->update(states[tau % (n + 1)], G, step_size);
+                    m_value_strategy->get_approximator()->update(states[tau % (n + 1)], G, step_size);
                 }
 
                 if (tau == T - 1) {

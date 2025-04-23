@@ -6,11 +6,12 @@
 #include "Policy.h"
 #include "m_utils.h"
 
-template <typename State, typename Action>
+template <typename State, typename Action, typename ValueStrategyType = TabularValueStrategy<State, Action>>
 class MC_FV : public GPI<State, Action> {
    protected:
     std::unordered_map<std::pair<State, Action>, int, StateActionPairHash<State, Action>> N;
     std::unordered_map<State, std::vector<Return>, StateHash<State>> m_returns;
+    ValueStrategyType* m_value_strategy;
     Return avg_returns(const State& s) {
         if (m_returns.find(s) == m_returns.end()) {
             throw std::runtime_error("State not found in returns.");
@@ -32,10 +33,10 @@ class MC_FV : public GPI<State, Action> {
     }
 
    public:
-    MC_FV(MDP<State, Action>* mdp_core, Policy<State, Action>* policy, const double discount_rate,
-          const double number_of_episodes)
-        : GPI<State, Action>(mdp_core, policy, discount_rate, number_of_episodes) {
-        policy->initialize(this);
+    MC_FV(MDP<State, Action>* mdp_core, Policy<State, Action>* policy, ValueStrategyType* value_strategy,
+          const double discount_rate, const double number_of_episodes)
+        : GPI<State, Action>(mdp_core, policy, discount_rate, number_of_episodes), m_value_strategy(value_strategy) {
+        policy->initialize(mdp_core, value_strategy);
     };
 
     void mc_main(const std::function<void(const State&, const Action&, Return)>& update_fn) {
@@ -68,15 +69,15 @@ class MC_FV : public GPI<State, Action> {
     void policy_iteration() override {
         mc_main([this](const State& s, const Action& a, Return G) {
             N[{s, a}]++;
-            auto error = G - this->m_Q[{s, a}];
-            this->m_Q[{s, a}] += error / N[{s, a}];
+            auto error = G - m_value_strategy->Q(s, a);
+            m_value_strategy->set_q(s, a, m_value_strategy->Q(s, a) + error / N[{s, a}]);
         });
     }
 
     void value_estimation() {
         mc_main([this](const State& s, const Action& a, Return G) {
             m_returns[s].push_back(G);
-            this->m_v[s] = avg_returns(s);
+            m_value_strategy->set_v(s, avg_returns(s));
         });
     }
 };

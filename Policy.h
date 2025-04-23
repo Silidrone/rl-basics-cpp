@@ -2,6 +2,10 @@
 #include <MDPSolver.h>
 #include <ValueStrategy.h>
 
+#include <unordered_map>
+
+#include "m_types.h"
+
 template <typename State, typename Action>
 class Policy {
    protected:
@@ -10,6 +14,8 @@ class Policy {
 
    public:
     Policy() : m_mdp(nullptr), m_value_strategy(nullptr) {}
+
+    Policy(ValueStrategy<State, Action>* value_strategy) : m_mdp(nullptr), m_value_strategy(value_strategy) {}
 
     virtual ~Policy() = default;
 
@@ -29,10 +35,47 @@ class Policy {
     virtual Action sample(const State& s) { return std::get<0>(greedy_action(s)); }
 
     virtual std::tuple<Action, Return> greedy_action(const State& s) { return m_value_strategy->get_best_action(s); }
+
+    std::unordered_map<State, Action, StateHash<State>> optimal() const {
+        if (!m_mdp || !m_value_strategy) {
+            throw std::logic_error("Policy not properly initialized with MDP and ValueStrategy");
+        }
+
+        std::unordered_map<State, Action, StateHash<State>> optimal_policy;
+
+        for (const State& s : m_mdp->S()) {
+            if (!m_mdp->is_terminal(s)) {
+                auto [best_action, _] = const_cast<Policy*>(this)->greedy_action(s);
+                optimal_policy[s] = best_action;
+            }
+        }
+
+        return optimal_policy;
+    }
+
+    ValueStrategy<State, Action>* value_strategy() { return m_value_strategy; }
 };
 
 template <typename State, typename Action>
-using DeterministicPolicy = Policy<State, Action>;
+class DeterministicPolicy : public Policy<State, Action> {
+   private:
+    std::unordered_map<State, Action, StateHash<State>> m_policy_map;
+
+   public:
+    DeterministicPolicy() : Policy<State, Action>() {}
+
+    DeterministicPolicy(ValueStrategy<State, Action>* value_strategy) : Policy<State, Action>(value_strategy) {}
+
+    void set(const State& state, const Action& action) { m_policy_map[state] = action; }
+
+    Action sample(const State& s) override {
+        auto it = m_policy_map.find(s);
+        if (it != m_policy_map.end()) {
+            return it->second;
+        }
+        return std::get<0>(this->greedy_action(s));
+    }
+};
 
 template <typename State, typename Action>
 class EpsilonGreedyPolicy : public Policy<State, Action> {
@@ -51,12 +94,10 @@ class EpsilonGreedyPolicy : public Policy<State, Action> {
     Action sample(const State& s) override {
         std::uniform_real_distribution<double> dist(0.0, 1.0);
         if (dist(m_generator) < m_epsilon) {
-            // Random exploration
             auto actions = this->m_mdp->A(s);
             std::uniform_int_distribution<int> action_dist(0, actions.size() - 1);
             return actions[action_dist(m_generator)];
         } else {
-            // Greedy exploitation - use base class implementation for greedy action
             return std::get<0>(this->greedy_action(s));
         }
     }

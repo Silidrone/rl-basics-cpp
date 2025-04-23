@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "Communicator.h"
-#include "DeterministicPolicy.h"
 #include "MDP.h"
+#include "Policy.h"
 #include "m_types.h"
 
 static const std::vector<std::pair<int, int>> DIRECTION_VECTORS = {{0, 0},  {1, 0},   {1, 1},  {0, 1}, {-1, 1},
