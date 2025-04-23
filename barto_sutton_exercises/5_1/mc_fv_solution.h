@@ -11,7 +11,7 @@
 #include "barto_sutton_exercises/5_1/Blackjack.h"
 #include "serialization.h"
 
-static constexpr int N_OF_EPISODES = 500000;
+static constexpr int N_OF_EPISODES = 500;
 
 inline void plot_v_f(TabularValueStrategy<State, Action>& value_strategy, bool usable_ace_flag) {
     matplot::vector_2d x, y, z;

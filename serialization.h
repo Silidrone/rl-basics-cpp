@@ -89,23 +89,6 @@ void serialize_to_json(const std::unordered_map<Key, Value, Hash>& map, const st
     file.close();
 }
 
-// Specialized serialization for tuple<int, int, bool> keys
-template <typename Value, typename Hash>
-void serialize_to_json(const std::unordered_map<std::tuple<int, int, bool>, Value, Hash>& map,
-                       const std::string& filename) {
-    nlohmann::json j;
-    for (const auto& [key, value] : map) {
-        const auto& [a, b, c] = key;
-        j[key_to_string(a) + "," + key_to_string(b) + "," + (c ? "true" : "false")] = value;
-    }
-    std::ofstream file(output_dir + filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file for writing JSON.");
-    }
-    file << j.dump(4);
-    file.close();
-}
-
 // Specialized serialization for pair<tuple<int, int, bool>, bool> keys
 template <typename Value, typename Hash>
 void serialize_to_json(const std::unordered_map<std::pair<std::tuple<int, int, bool>, bool>, Value, Hash>& map,
@@ -292,8 +275,8 @@ void serialize_blackjack_policy(const std::unordered_map<std::tuple<int, int, bo
 
 // Generic policy serialization for non-boolean actions
 template <typename State, typename Action>
-typename std::enable_if<!std::is_same<Action, bool>::value, void>::type
-serialize_to_json(const std::unordered_map<State, Action, StateHash<State>>& policy, const std::string& filename) {
+typename std::enable_if<!std::is_same<Action, bool>::value && !std::is_same<Action, double>::value, void>::type
+serialize_policy_to_json(const std::unordered_map<State, Action, StateHash<State>>& policy, const std::string& filename) {
     nlohmann::json j;
     for (const auto& [state, action] : policy) {
         j[key_to_string(state)] = action;
