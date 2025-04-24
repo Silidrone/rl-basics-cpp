@@ -8,8 +8,8 @@
 #include "Policy.h"
 #include "TD.h"
 #include "ValueStrategy.h"
-#include "serialization.h"
 #include "WindyGridworld.h"
+#include "serialization.h"
 
 static constexpr int N_OF_EPISODES = 6000;
 static constexpr double DISCOUNT_RATE = 0.9;  // no discounting
@@ -22,7 +22,7 @@ inline int windygridworld_main() {
 
     auto value_strategy = new TabularValueStrategy<State, Action>();
     value_strategy->initialize(&environment);
-    
+
     EpsilonGreedyPolicy<State, Action> policy(value_strategy, EPSILON);
 
     TD<State, Action> mdp_solver(&environment, &policy, value_strategy, DISCOUNT_RATE, N_OF_EPISODES, ALPHA);
@@ -31,7 +31,7 @@ inline int windygridworld_main() {
 
     std::cout << "Time taken: " << time_taken << std::endl << std::endl;
 
-    auto optimal_policy = value_strategy->get_optimal_policy();
+    auto optimal_policy = policy.optimal();
     environment.plot_policy(optimal_policy);
     std::cout << std::endl << std::endl;
     environment.output_trajectory(optimal_policy);
