@@ -5,17 +5,17 @@
 #include <functional>
 #include <iostream>
 
-#include "LinearFunctionApproximator.h"
-#include "NStepTD.h"
+#include "FA_TD.h"
+#include "FunctionApproximator.h"
 #include "Policy.h"
 #include "ValueStrategy.h"
 #include "WindyGridworld.h"
+#include "serialization.h"
 
-static constexpr int N_OF_EPISODES = 1;
+static constexpr int N_OF_EPISODES = 6000;
 static constexpr double DISCOUNT_RATE = 0.9;
 static constexpr double EPSILON = 0.1;
 static constexpr double ALPHA = 0.1;
-static constexpr int N_STEP = 3;
 
 inline int windygridworld_main() {
     WindyGridworld environment;
@@ -36,8 +36,7 @@ inline int windygridworld_main() {
 
     EpsilonGreedyPolicy<State, Action> policy(value_strategy, EPSILON);
 
-    NStepTD<State, Action> mdp_solver(&environment, &policy, value_strategy, DISCOUNT_RATE, N_OF_EPISODES, ALPHA,
-                                      N_STEP);
+    FA_TD<State, Action> mdp_solver(&environment, &policy, value_strategy, DISCOUNT_RATE, N_OF_EPISODES, ALPHA);
 
     double time_taken = benchmark([&]() { mdp_solver.policy_iteration(); });
 

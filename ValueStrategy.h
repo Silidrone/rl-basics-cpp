@@ -87,9 +87,7 @@ class TabularValueStrategy : public ValueStrategy<State, Action> {
 
     std::unordered_map<State, Return, StateHash<State>>& get_v() { return m_v; }
 
-    std::unordered_map<std::pair<State, Action>, Return, StateActionPairHash<State, Action>>& get_Q() {
-        return m_Q;
-    }
+    std::unordered_map<std::pair<State, Action>, Return, StateActionPairHash<State, Action>>& get_Q() { return m_Q; }
 };
 template <typename State, typename Action>
 class ApproximationValueStrategy : public ValueStrategy<State, Action> {
@@ -121,8 +119,13 @@ class ApproximationValueStrategy : public ValueStrategy<State, Action> {
         double best_value = std::numeric_limits<double>::lowest();
 
         for (const Action& a : m_mdp->A(s)) {
-            auto [next_state, _] = m_mdp->step(s, a);
-            double value = m_approximator->predict(next_state);
+            auto [next_state, reward] = m_mdp->step(s, a);
+            double value;
+            if (m_mdp->is_terminal(next_state)) {
+                value = reward;  // Terminal states have no future value
+            } else {
+                value = reward + m_approximator->predict(next_state);
+            }
             if (value > best_value) {
                 best_value = value;
                 best_action = a;
@@ -133,4 +136,51 @@ class ApproximationValueStrategy : public ValueStrategy<State, Action> {
     }
 
     FunctionApproximator<State>* get_approximator() const { return m_approximator; }
+};
+
+template <typename State, typename Action>
+class ActionValueApproximationStrategy : public ValueStrategy<State, Action> {
+   protected:
+    ActionValueFunctionApproximator<State, Action>* m_approximator;
+    MDP<State, Action>* m_mdp;
+
+   public:
+    ActionValueApproximationStrategy() : m_approximator(nullptr), m_mdp(nullptr) {}
+
+    void initialize(MDP<State, Action>* mdp, ActionValueFunctionApproximator<State, Action>* approximator) {
+        if (!mdp || !approximator) {
+            throw std::invalid_argument("Both MDP and ActionValueFunctionApproximator must be non-null");
+        }
+        m_mdp = mdp;
+        m_approximator = approximator;
+    }
+
+    void initialize(MDP<State, Action>* mdp) override {
+        throw std::logic_error(
+            "ActionValueApproximationStrategy requires both MDP and ActionValueFunctionApproximator");
+    }
+
+    std::tuple<Action, Return> get_best_action(const State& s) override {
+        if (!m_approximator || !m_mdp) {
+            throw std::logic_error("ActionValueApproximationStrategy not properly initialized");
+        }
+
+        Action best_action;
+        double best_value = std::numeric_limits<double>::lowest();
+
+        for (const Action& a : m_mdp->A(s)) {
+            double value = m_approximator->predict(s, a);
+
+            if (value > best_value) {
+                best_value = value;
+                best_action = a;
+            }
+        }
+
+        return {best_action, best_value};
+    }
+
+    double Q(const State& s, const Action& a) const { return m_approximator->predict(s, a); }
+
+    ActionValueFunctionApproximator<State, Action>* get_approximator() const { return m_approximator; }
 };
