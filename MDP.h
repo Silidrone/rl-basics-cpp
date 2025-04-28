@@ -35,8 +35,24 @@ class MDP {
 
     std::vector<State> S() const { return m_S; }
     std::vector<State> T() const { return m_T; }
-    std::vector<Action> A(const State& s) const { return m_A.at(s); }
+    std::vector<Action> A(const State& s) const {
+        auto it = m_A.find(s);
+        if (it != m_A.end()) {
+            return it->second;
+        }
+
+        throw std::out_of_range("State not found in action map");
+    }
     std::unordered_map<State, std::vector<Action>, StateHash<State>> A() const { return m_A; }
+
+    // Return all possible actions independent of state
+    virtual std::vector<Action> all_possible_actions() const {
+        throw std::logic_error("all_possible_actions is not implemented in this environment.");
+    }
+
+    virtual bool is_valid(const State& s, const Action& a) const {
+        throw std::logic_error("is_valid is not implemented in this environment.");
+    }
 
     std::vector<Transition> p(const State& s, const Action& a) const { return m_dynamics.at({s, a}); }
     Dynamics dynamics() const { return m_dynamics; }

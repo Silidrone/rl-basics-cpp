@@ -120,7 +120,16 @@ class ApproximationValueStrategy : public ValueStrategy<State, Action> {
         Action best_action;
         double best_value = std::numeric_limits<double>::lowest();
 
-        for (const Action& a : m_mdp->A(s)) {
+        // Always use all_possible_actions for function approximation
+        static int i = 0;
+        i++;
+        auto all_actions = m_mdp->all_possible_actions();
+        for (Action a : all_actions) {
+            // Skip invalid actions for this state
+            if (!m_mdp->is_valid(s, a)) {
+                continue;
+            }
+
             double value = m_approximator->predict(s, a);
 
             if (value > best_value) {

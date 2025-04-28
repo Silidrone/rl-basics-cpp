@@ -10,7 +10,7 @@ void WindyGridworld::initialize() {
             State s = {r, c};
             m_S.push_back(s);
             for (auto& a : possible_actions) {
-                if (is_valid(walk(s, a))) m_A[s].push_back(a);
+                if (is_valid(s, a)) m_A[s].push_back(a);
             }
         }
     }
@@ -30,6 +30,10 @@ std::pair<State, Reward> WindyGridworld::step(const State& state, const Action& 
     }
 
     return {resulting_state, CONSTANT_REWARD};
+}
+
+std::vector<Action> WindyGridworld::all_possible_actions() const {
+    return std::vector<Action>(possible_actions.begin(), possible_actions.end());
 }
 
 void WindyGridworld::plot_policy(const std::unordered_map<State, Action, StateHash<State>>& optimal_policy) {

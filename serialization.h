@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "FunctionApproximator.h"
 #include "ValueStrategy.h"
 #include "m_types.h"
 #include "m_utils.h"
@@ -213,7 +214,7 @@ bool load_v_values(TabularValueStrategy<State, Action>& strategy, const std::str
 
 // Specialization for TagGame Q-values
 template <>
-bool load_q_values<std::tuple<std::pair<int, int>, std::pair<int, int>, int>, std::pair<int, int>>(
+inline bool load_q_values<std::tuple<std::pair<int, int>, std::pair<int, int>, int>, std::pair<int, int>>(
     TabularValueStrategy<std::tuple<std::pair<int, int>, std::pair<int, int>, int>, std::pair<int, int>>& strategy,
     const std::string& file_path) {
     using State = std::tuple<std::pair<int, int>, std::pair<int, int>, int>;
@@ -244,22 +245,64 @@ bool load_q_values<std::tuple<std::pair<int, int>, std::pair<int, int>, int>, st
 }
 
 template <typename State, typename Action>
-bool save_approximator(const ApproximationValueStrategy<State, Action>& strategy, const std::string& file_path) {
-    // This function would need to be specialized based on the approximator type
-    std::cerr << "Warning: Using default approximator serialization (not implemented)" << std::endl;
-    return false;
+bool save_approximator(const FunctionApproximator<State, Action>* approximator, const std::string& file_path) {
+    try {
+        if (!approximator) {
+            std::cerr << "Error: Null approximator pointer" << std::endl;
+            return false;
+        }
+
+        const auto& weights = approximator->get_weights();
+
+        nlohmann::json j;
+        j["weights"] = weights;
+
+        std::ofstream file(output_dir + file_path);
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open file for writing JSON.");
+        }
+        file << j.dump(4);
+        file.close();
+
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to save action-value approximator weights: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 template <typename State, typename Action>
-bool load_approximator(ApproximationValueStrategy<State, Action>& strategy, const std::string& file_path) {
-    // This function would need to be specialized based on the approximator type
-    std::cerr << "Warning: Using default approximator deserialization (not implemented)" << std::endl;
-    return false;
+bool load_approximator(FunctionApproximator<State, Action>* approximator, const std::string& file_path) {
+    try {
+        if (!approximator) {
+            std::cerr << "Error: Null approximator pointer" << std::endl;
+            return false;
+        }
+
+        if (!std::filesystem::exists(file_path)) {
+            std::cerr << "File does not exist: " << file_path << std::endl;
+            return false;
+        }
+
+        std::ifstream input_file(file_path);
+        nlohmann::json j;
+        input_file >> j;
+
+        std::vector<double> weights = j["weights"].get<std::vector<double>>();
+
+        approximator->set_weights(weights);
+
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to load action-value approximator weights: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 // For explicit template specialization for Blackjack's policy
-void serialize_blackjack_policy(const std::unordered_map<std::tuple<int, int, bool>, bool, StateHash<std::tuple<int, int, bool>>>& policy, 
-                                const std::string& filename) {
+inline void serialize_blackjack_policy(
+    const std::unordered_map<std::tuple<int, int, bool>, bool, StateHash<std::tuple<int, int, bool>>>& policy,
+    const std::string& filename) {
     nlohmann::json j;
     for (const auto& [state, action] : policy) {
         // For Blackjack: true = "hit", false = "stick"
@@ -276,7 +319,8 @@ void serialize_blackjack_policy(const std::unordered_map<std::tuple<int, int, bo
 // Generic policy serialization for non-boolean actions
 template <typename State, typename Action>
 typename std::enable_if<!std::is_same<Action, bool>::value && !std::is_same<Action, double>::value, void>::type
-serialize_policy_to_json(const std::unordered_map<State, Action, StateHash<State>>& policy, const std::string& filename) {
+serialize_policy_to_json(const std::unordered_map<State, Action, StateHash<State>>& policy,
+                         const std::string& filename) {
     nlohmann::json j;
     for (const auto& [state, action] : policy) {
         j[key_to_string(state)] = action;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+#include <iostream>
 #include <limits>
 
 #include "FunctionApproximator.h"
@@ -15,8 +17,8 @@ class FA_TD : public GPI<State, Action> {
 
    public:
     FA_TD(MDP<State, Action>* mdp_core, Policy<State, Action>* policy,
-           ApproximationValueStrategy<State, Action>* value_strategy, const double discount_rate,
-           const long double policy_threshold, const double step_size)
+          ApproximationValueStrategy<State, Action>* value_strategy, const double discount_rate,
+          const long double policy_threshold, const double step_size)
         : GPI<State, Action>(mdp_core, policy, discount_rate, policy_threshold),
           m_value_strategy(value_strategy),
           step_size(step_size) {
@@ -25,25 +27,23 @@ class FA_TD : public GPI<State, Action> {
 
     void td_main() {
         int i = 0;
-        do {
+        do {  // episode loop
             i++;
             State s = this->m_mdp->reset();
-
-            do {
-                Action a = this->m_policy->sample(s);
+            Action a = this->m_policy->sample(s);
+            do {  // step loop
                 auto [s_prime, r] = this->m_mdp->step(s, a);
-
-                double target;
                 if (this->m_mdp->is_terminal(s_prime)) {
-                    target = r;
+                    m_value_strategy->get_approximator()->update(s, a, r, this->step_size);
                 } else {
-                    auto [best_action, _] = this->m_policy->greedy_action(s_prime);
-                    target = r + this->m_discount_rate * m_value_strategy->Q(s_prime, best_action);
+                    Action a_prime = this->m_policy->sample(s_prime);
+                    double q_next = m_value_strategy->get_approximator()->predict(s_prime, a_prime);
+                    double target = r + this->m_discount_rate * q_next;
+                    m_value_strategy->get_approximator()->update(s, a, target, this->step_size);
+                    a = a_prime;
                 }
 
-                m_value_strategy->get_approximator()->update(s, a, target, this->step_size);
                 s = s_prime;
-
             } while (!this->m_mdp->is_terminal(s));
         } while (i < this->m_policy_threshold);
     }

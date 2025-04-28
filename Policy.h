@@ -95,6 +95,9 @@ class EpsilonGreedyPolicy : public Policy<State, Action> {
         std::uniform_real_distribution<double> dist(0.0, 1.0);
         if (dist(m_generator) < m_epsilon) {
             auto actions = this->m_mdp->A(s);
+            if (actions.empty()) {
+                throw std::runtime_error("No available actions for the given state");
+            }
             std::uniform_int_distribution<int> action_dist(0, actions.size() - 1);
             return actions[action_dist(m_generator)];
         } else {

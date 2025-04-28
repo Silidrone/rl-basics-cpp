@@ -24,15 +24,17 @@ constexpr std::array<Action, 4> possible_actions = {{
 
 class WindyGridworld : public MDP<State, Action> {
    protected:
-    State walk(const State &s, const Action &a) { return {s.first + a.first, s.second + a.second}; }
-    State walk_with_wind(const State &s, const Action &a) {
+    State walk(const State &s, const Action &a) const { return {s.first + a.first, s.second + a.second}; }
+    State walk_with_wind(const State &s, const Action &a) const {
         State next_state = walk(s, a);
         int new_row = std::max(0, std::min(ROW_COUNT - 1, next_state.first - wind[s.second]));
 
         return {new_row, next_state.second};
     }
-    bool is_valid(const State &s) {
-        return s.first >= 0 && s.first < ROW_COUNT && s.second >= 0 && s.second < COL_COUNT;
+    bool is_valid(const State &s, const Action &a) const override {
+        State next_state = walk(s, a);
+        return next_state.first >= 0 && next_state.first < ROW_COUNT && next_state.second >= 0 &&
+               next_state.second < COL_COUNT;
     };
 
    public:
@@ -40,6 +42,7 @@ class WindyGridworld : public MDP<State, Action> {
     bool is_terminal(const State &s) override;
     State reset() override;
     std::pair<State, Reward> step(const State &, const Action &) override;
+    std::vector<Action> all_possible_actions() const override;
     void plot_policy(const std::unordered_map<State, Action, StateHash<State>> &);
     void output_trajectory(const std::unordered_map<State, Action, StateHash<State>> &);
 };

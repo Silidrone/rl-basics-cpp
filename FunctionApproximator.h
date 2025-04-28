@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <stdexcept>
 #include <vector>
 
 template <typename State, typename Action>
@@ -8,6 +9,8 @@ class FunctionApproximator {
     virtual double predict(const State& s, const Action& a) const = 0;
     virtual std::vector<double> gradient(const State& s, const Action& a) const = 0;
     virtual void update(const State& s, const Action& a, double target, double step_size) = 0;
+    virtual const std::vector<double>& get_weights() const = 0;
+    virtual void set_weights(const std::vector<double>& new_weights) = 0;
     virtual ~FunctionApproximator() = default;
 };
 
@@ -37,5 +40,14 @@ class LinearFunctionApproximator : public FunctionApproximator<State, Action> {
         double prediction = predict(s, a);
         double delta = target - prediction;
         for (size_t i = 0; i < weights.size(); ++i) weights[i] += step_size * delta * x[i];
+    }
+
+    const std::vector<double>& get_weights() const override { return weights; }
+
+    void set_weights(const std::vector<double>& new_weights) override {
+        if (weights.size() != new_weights.size()) {
+            throw std::invalid_argument("Weight vector size mismatch");
+        }
+        weights = new_weights;
     }
 };
