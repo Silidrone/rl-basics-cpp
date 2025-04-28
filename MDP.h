@@ -35,13 +35,18 @@ class MDP {
 
     std::vector<State> S() const { return m_S; }
     std::vector<State> T() const { return m_T; }
-    std::vector<Action> A(const State& s) const {
+    std::vector<Action> A(const State& s, bool fallback = true) const {
         auto it = m_A.find(s);
         if (it != m_A.end()) {
             return it->second;
         }
 
-        throw std::out_of_range("State not found in action map");
+        // If fallback is true, return all possible actions; otherwise throw
+        if (fallback) {
+            return this->all_possible_actions();
+        } else {
+            throw std::out_of_range("State not found in action map");
+        }
     }
     std::unordered_map<State, std::vector<Action>, StateHash<State>> A() const { return m_A; }
 

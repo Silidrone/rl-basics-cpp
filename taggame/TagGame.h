@@ -8,10 +8,11 @@
 #include "Policy.h"
 #include "m_types.h"
 
-static const std::vector<std::pair<int, int>> DIRECTION_VECTORS = {{0, 0},  {1, 0},   {1, 1},  {0, 1}, {-1, 1},
-                                                                   {-1, 0}, {-1, -1}, {0, -1}, {1, -1}};
-static constexpr int MIN_DISTANCE = 1;
-static constexpr int MAX_DISTANCE = 2;
+static constexpr double MAX_VELOCITY = 5;
+static constexpr double MAX_X = 1000;
+static constexpr double MAX_Y = 1000;
+static const double MAX_DISTANCE = std::sqrt(MAX_X * MAX_X + MAX_Y * MAX_Y);
+
 static const std::string TAGGAME_HOST = "127.0.0.1";
 static const int TAGGAME_PORT = 12345;
 
@@ -30,11 +31,12 @@ class TagGame : public MDP<State, Action> {
     virtual ~TagGame() { Communicator::getInstance().disconnect(); };
     void initialize() override;
     bool is_terminal(const State &s) override;
+    bool is_valid(const State &s, const Action &a) const override { return true; };
     std::string serialize_action(Action);
     State deserialize_state(const std::string &);
     Reward calculate_reward(const State &, const State &);
     State reset() override;
     std::pair<State, Reward> step(const State &, const Action &) override;
-    std::vector<Action> all_actions();
+    std::vector<Action> all_possible_actions() const override;
     void plot_policy(DeterministicPolicy<State, Action> &);
 };

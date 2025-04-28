@@ -15,12 +15,12 @@ void TagGame::initialize() {
             "control.");
     }
 
-    for (const auto& mv : DIRECTION_VECTORS) {
-        for (const auto& tv : DIRECTION_VECTORS) {
-            for (int distance = MIN_DISTANCE; distance <= MAX_DISTANCE; ++distance) {
-                State s = std::make_tuple(mv, tv, distance);
-                m_S.push_back(s);
-                m_A[s] = std::vector<std::pair<int, int>>(DIRECTION_VECTORS.begin() + 1, DIRECTION_VECTORS.end());
+    // Initialize all possible actions once
+    m_all_actions.clear();
+    for (int ax = -MAX_VELOCITY; ax <= MAX_VELOCITY; ++ax) {
+        for (int ay = -MAX_VELOCITY; ay <= MAX_VELOCITY; ++ay) {
+            if (ax != 0 || ay != 0) {
+                m_all_actions.push_back({ax, ay});
             }
         }
     }
@@ -62,10 +62,10 @@ Reward TagGame::calculate_reward(const State& old_s, const State& new_s) {
     auto [new_my_velocity, new_tagged_velocity, new_distance] = new_s;
 
     if (new_distance == 0) {
-        return -10000;
+        return -10;
     }
 
-    return 0;
+    return 0.0001;
 }
 
 State TagGame::reset() {
@@ -82,6 +82,6 @@ std::pair<State, Reward> TagGame::step(const State& old_s, const Action& action)
     return {new_s, calculate_reward(old_s, new_s)};
 }
 
-std::vector<Action> TagGame::all_actions() { return m_all_actions; }
+std::vector<Action> TagGame::all_possible_actions() const { return m_all_actions; }
 
 void TagGame::plot_policy(DeterministicPolicy<State, Action>& pi) {}

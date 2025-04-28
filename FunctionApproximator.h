@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <random>
 #include <stdexcept>
 #include <vector>
 
@@ -22,12 +23,22 @@ class LinearFunctionApproximator : public FunctionApproximator<State, Action> {
 
    public:
     LinearFunctionApproximator(int feature_dim, std::function<std::vector<double>(const State&, const Action&)> fe)
-        : weights(feature_dim, 0.0), feature_extractor(fe) {}
+        : weights(feature_dim, 0.0), feature_extractor(fe) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(-0.1, 0.1);
+
+        for (size_t i = 0; i < weights.size(); ++i) {
+            weights[i] = dis(gen);
+        }
+    }
 
     double predict(const State& s, const Action& a) const override {
         auto x = feature_extractor(s, a);
         double value = 0.0;
-        for (size_t i = 0; i < x.size(); ++i) value += weights[i] * x[i];
+        for (size_t i = 0; i < x.size(); ++i) {
+            value += weights[i] * x[i];
+        }
         return value;
     }
 

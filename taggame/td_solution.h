@@ -46,6 +46,6 @@ inline int taggame_main() {
     }
 
     save_q_values(*value_strategy, Q_INPUT_FILE);
-    serialize_to_json(value_strategy->get_optimal_policy(), POLICY_INPUT_FILE);
+    serialize_to_json(policy.optimal(), POLICY_INPUT_FILE);
     return 0;
 }
