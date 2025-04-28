@@ -21,22 +21,39 @@ inline int windygridworld_main() {
     WindyGridworld environment;
     environment.initialize();
 
-    std::function<std::vector<double>(const State&)> feature_extractor = [](const State& s) {
-        std::vector<double> features(ROW_COUNT * COL_COUNT, 0.0);
-        int index = s.first * COL_COUNT + s.second;
+    // Feature extractor for state-action pairs
+    std::function<std::vector<double>(const State&, const Action&)> feature_extractor = [](const State& s,
+                                                                                           const Action& a) {
+        // Create features for all state-action combinations
+        int total_actions = possible_actions.size();
+        std::vector<double> features(ROW_COUNT * COL_COUNT * total_actions, 0.0);
+
+        // Find action index
+        int action_idx = 0;
+        for (size_t i = 0; i < possible_actions.size(); i++) {
+            if (possible_actions[i] == a) {
+                action_idx = i;
+                break;
+            }
+        }
+
+        // Set the feature for this specific state-action pair
+        int index = (s.first * COL_COUNT + s.second) * total_actions + action_idx;
         features[index] = 1.0;
         return features;
     };
 
-    int feature_dim = ROW_COUNT * COL_COUNT;
-    auto approximator = new LinearFunctionApproximator<State>(feature_dim, feature_extractor);
+    int total_actions = possible_actions.size();
+    int feature_dim = ROW_COUNT * COL_COUNT * total_actions;
 
-    auto value_strategy = new ApproximationValueStrategy<State, Action>();
-    value_strategy->initialize(&environment, approximator);
+    LinearFunctionApproximator<State, Action> approximator(feature_dim, feature_extractor);
+    ApproximationValueStrategy<State, Action> value_strategy;
 
-    EpsilonGreedyPolicy<State, Action> policy(value_strategy, EPSILON);
+    value_strategy.initialize(&environment, &approximator);
 
-    FA_TD<State, Action> mdp_solver(&environment, &policy, value_strategy, DISCOUNT_RATE, N_OF_EPISODES, ALPHA);
+    EpsilonGreedyPolicy<State, Action> policy(&value_strategy, EPSILON);
+
+    FA_TD<State, Action> mdp_solver(&environment, &policy, &value_strategy, DISCOUNT_RATE, N_OF_EPISODES, ALPHA);
 
     double time_taken = benchmark([&]() { mdp_solver.policy_iteration(); });
 

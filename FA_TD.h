@@ -15,8 +15,8 @@ class FA_TD : public GPI<State, Action> {
 
    public:
     FA_TD(MDP<State, Action>* mdp_core, Policy<State, Action>* policy,
-          ApproximationValueStrategy<State, Action>* value_strategy, const double discount_rate,
-          const long double policy_threshold, const double step_size)
+           ApproximationValueStrategy<State, Action>* value_strategy, const double discount_rate,
+           const long double policy_threshold, const double step_size)
         : GPI<State, Action>(mdp_core, policy, discount_rate, policy_threshold),
           m_value_strategy(value_strategy),
           step_size(step_size) {
@@ -37,10 +37,11 @@ class FA_TD : public GPI<State, Action> {
                 if (this->m_mdp->is_terminal(s_prime)) {
                     target = r;
                 } else {
-                    target = r + this->m_discount_rate * m_value_strategy->get_approximator()->predict(s_prime);
+                    auto [best_action, _] = this->m_policy->greedy_action(s_prime);
+                    target = r + this->m_discount_rate * m_value_strategy->Q(s_prime, best_action);
                 }
 
-                m_value_strategy->get_approximator()->update(s, target, this->step_size);
+                m_value_strategy->get_approximator()->update(s, a, target, this->step_size);
                 s = s_prime;
 
             } while (!this->m_mdp->is_terminal(s));
