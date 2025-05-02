@@ -84,6 +84,30 @@ struct StateHash {
             result ^= std::hash<int>()(d) + 0x9e3779b9 + (result << 6) + (result >> 2);
 
             return result;
+        } else if constexpr (std::is_same_v<State, std::tuple<std::pair<int, int>, std::pair<int, int>, std::pair<int, int>, std::pair<int, int>, bool>>) {
+            const auto& [my_pos, my_vel, tag_pos, tag_vel, is_tagged] = state;
+            size_t result = 0;
+
+            // Hash my_pos
+            result ^= std::hash<int>()(my_pos.first) + 0x9e3779b9 + (result << 6) + (result >> 2);
+            result ^= std::hash<int>()(my_pos.second) + 0x9e3779b9 + (result << 6) + (result >> 2);
+
+            // Hash my_vel
+            result ^= std::hash<int>()(my_vel.first) + 0x9e3779b9 + (result << 6) + (result >> 2);
+            result ^= std::hash<int>()(my_vel.second) + 0x9e3779b9 + (result << 6) + (result >> 2);
+
+            // Hash tag_pos
+            result ^= std::hash<int>()(tag_pos.first) + 0x9e3779b9 + (result << 6) + (result >> 2);
+            result ^= std::hash<int>()(tag_pos.second) + 0x9e3779b9 + (result << 6) + (result >> 2);
+
+            // Hash tag_vel
+            result ^= std::hash<int>()(tag_vel.first) + 0x9e3779b9 + (result << 6) + (result >> 2);
+            result ^= std::hash<int>()(tag_vel.second) + 0x9e3779b9 + (result << 6) + (result >> 2);
+
+            // Hash is_tagged
+            result ^= std::hash<bool>()(is_tagged) + 0x9e3779b9 + (result << 6) + (result >> 2);
+
+            return result;
         } else {
             return std::hash<State>()(state);
         }

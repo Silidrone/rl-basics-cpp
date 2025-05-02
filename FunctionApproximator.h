@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include <functional>
 #include <random>
 #include <stdexcept>
@@ -9,7 +10,7 @@ class FunctionApproximator {
    public:
     virtual double predict(const State& s, const Action& a) const = 0;
     virtual std::vector<double> gradient(const State& s, const Action& a) const = 0;
-    virtual void update(const State& s, const Action& a, double target, double step_size) = 0;
+    virtual void update(const State& s, const Action& a, double error, double step_size) = 0;
     virtual const std::vector<double>& get_weights() const = 0;
     virtual void set_weights(const std::vector<double>& new_weights) = 0;
     virtual ~FunctionApproximator() = default;
@@ -46,11 +47,9 @@ class LinearFunctionApproximator : public FunctionApproximator<State, Action> {
         return feature_extractor(s, a);  // for linear FA, gradient = features
     }
 
-    void update(const State& s, const Action& a, double target, double step_size) override {
+    void update(const State& s, const Action& a, double error, double step_size) override {
         auto x = feature_extractor(s, a);
-        double prediction = predict(s, a);
-        double delta = target - prediction;
-        for (size_t i = 0; i < weights.size(); ++i) weights[i] += step_size * delta * x[i];
+        for (size_t i = 0; i < weights.size(); ++i) weights[i] += step_size * error * x[i];
     }
 
     const std::vector<double>& get_weights() const override { return weights; }

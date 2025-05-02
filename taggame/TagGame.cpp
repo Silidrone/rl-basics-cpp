@@ -42,32 +42,38 @@ State TagGame::deserialize_state(const std::string& str_state) {
     try {
         nlohmann::json gameState = nlohmann::json::parse(str_state);
 
+        std::pair<int, int> myPosition(gameState["mp"][0], gameState["mp"][1]);
         std::pair<int, int> myVelocity(gameState["mv"][0], gameState["mv"][1]);
-        std::pair<int, int> taggedVelocity(gameState["tv"][0], gameState["tv"][1]);
-        int distance = gameState["d"];
+        std::pair<int, int> tagPosition(gameState["tp"][0], gameState["tp"][1]);
+        std::pair<int, int> tagVelocity(gameState["tv"][0], gameState["tv"][1]);
+        bool isTagged = gameState["t"];
 
-        std::cout << "Received: ([" << myVelocity.first << ", " << myVelocity.second << "], [" << taggedVelocity.first
-                  << ", " << taggedVelocity.second << "], " << distance << ")" << std::endl;
+        std::cout << "Received: mp=[" << myPosition.first << ", " << myPosition.second << "], mv=[" << myVelocity.first
+                  << ", " << myVelocity.second << "], tp=[" << tagPosition.first << ", " << tagPosition.second
+                  << "], tv=[" << tagVelocity.first << ", " << tagVelocity.second << "], tagged=" << isTagged
+                  << std::endl;
 
-        return {myVelocity, taggedVelocity, distance};
+        return {myPosition, myVelocity, tagPosition, tagVelocity, isTagged};
     } catch (const std::exception& e) {
         std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+        throw;
     }
 }
 
-bool TagGame::is_terminal(const State& s) { return std::get<2>(s) == 0; }
+bool TagGame::is_terminal(const State& s) {
+    return std::get<4>(s);  // Terminal if I am tagged (t is true)
+}
 
 Reward TagGame::calculate_reward(const State& old_s, const State& new_s) {
-    auto [old_my_velocity, old_tagged_velocity, old_distance] = old_s;
-    auto [new_my_velocity, new_tagged_velocity, new_distance] = new_s;
+    auto [old_my_pos, old_my_vel, old_tag_pos, old_tag_vel, old_is_tagged] = old_s;
+    auto [new_my_pos, new_my_vel, new_tag_pos, new_tag_vel, new_is_tagged] = new_s;
 
-    if (new_distance == 0) {
-        return -10;
+    if (new_is_tagged) {
+        return -1;
     }
 
-    return 0.0001;
+    return 1;
 }
-
 State TagGame::reset() {
     m_communicator.sendAction(m_communicator.RESET);
     return deserialize_state(m_communicator.receiveState());

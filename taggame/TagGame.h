@@ -8,16 +8,16 @@
 #include "Policy.h"
 #include "m_types.h"
 
-static constexpr double MAX_VELOCITY = 5;
-static constexpr double MAX_X = 1000;
-static constexpr double MAX_Y = 1000;
+static constexpr double MAX_VELOCITY = 3;
+static constexpr double MAX_X = 2000;
+static constexpr double MAX_Y = 2000;
 static const double MAX_DISTANCE = std::sqrt(MAX_X * MAX_X + MAX_Y * MAX_Y);
 
 static const std::string TAGGAME_HOST = "127.0.0.1";
 static const int TAGGAME_PORT = 12345;
 
-// (taggedVelocity, myVelocity, distance)
-using State = std::tuple<std::pair<int, int>, std::pair<int, int>, int>;
+// (myPosition, myVelocity, tagPosition, tagVelocity, isTagged)
+using State = std::tuple<std::pair<int, int>, std::pair<int, int>, std::pair<int, int>, std::pair<int, int>, bool>;
 // the x and y components of the velocity vector
 using Action = std::pair<int, int>;
 

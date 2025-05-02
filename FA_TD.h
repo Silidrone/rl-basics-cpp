@@ -33,13 +33,16 @@ class FA_TD : public GPI<State, Action> {
             Action a = this->m_policy->sample(s);
             do {  // step loop
                 auto [s_prime, r] = this->m_mdp->step(s, a);
+                double q_current = m_value_strategy->get_approximator()->predict(s, a);
+
                 if (this->m_mdp->is_terminal(s_prime)) {
-                    m_value_strategy->get_approximator()->update(s, a, r, this->step_size);
+                    double error = r - q_current;
+                    m_value_strategy->get_approximator()->update(s, a, error, this->step_size);
                 } else {
                     Action a_prime = this->m_policy->sample(s_prime);
                     double q_next = m_value_strategy->get_approximator()->predict(s_prime, a_prime);
-                    double target = r + this->m_discount_rate * q_next;
-                    m_value_strategy->get_approximator()->update(s, a, target, this->step_size);
+                    double error = (r + this->m_discount_rate * q_next) - q_current;
+                    m_value_strategy->get_approximator()->update(s, a, error, this->step_size);
                     a = a_prime;
                 }
 

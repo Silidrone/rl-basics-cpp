@@ -2,6 +2,7 @@
 
 #include <matplot/matplot.h>
 
+#include <algorithm>
 #include <chrono>
 #include <exception>
 #include <functional>
@@ -30,39 +31,45 @@ inline int taggame_main() {
 
     std::function<std::vector<double>(const State&, const Action&)> feature_extractor = [](const State& s,
                                                                                            const Action& a) {
-        const auto& [predator_pos, prey_pos, distance] = s;
+        const auto& [my_pos, my_vel, tag_pos, tag_vel, is_tagged] = s;
         const auto& [action_x, action_y] = a;
-
-        // Constants for normalization
 
         std::vector<double> features;
 
-        // Position features - normalized to [0,1] range
-        features.push_back(predator_pos.first / MAX_X);
-        features.push_back(predator_pos.second / MAX_Y);
-        features.push_back(prey_pos.first / MAX_X);
-        features.push_back(prey_pos.second / MAX_Y);
+        // Raw direction and distance data
+        double dx = (my_pos.first - tag_pos.first);
+        double dy = (my_pos.second - tag_pos.second);
+        double distance = std::sqrt(dx * dx + dy * dy);
 
-        // Distance features - normalized
+        // Normalized direction to tagger (unit vector)
+        double dir_magnitude = std::max(0.0001, std::sqrt(dx * dx + dy * dy));  // Avoid division by zero
+        double dir_x = dx / dir_magnitude;
+        double dir_y = dy / dir_magnitude;
+
+        // Normalized action
+        double action_magnitude = std::max(0.0001, std::sqrt(action_x * action_x + action_y * action_y));
+        double norm_action_x = action_x / action_magnitude;
+        double norm_action_y = action_y / action_magnitude;
+
+        // Moving away from tagger (-1 to 1)
+        double moving_away = norm_action_x * dir_x + norm_action_y * dir_y;
+
+        // Speed calculation
+        double my_speed = std::sqrt(my_vel.first * my_vel.first + my_vel.second * my_vel.second);
+        double tag_speed = std::sqrt(tag_vel.first * tag_vel.first + tag_vel.second * tag_vel.second);
+
+        // All push_backs in a row at the end
+        features.push_back(moving_away);
         features.push_back(distance / MAX_DISTANCE);
-        features.push_back(std::abs(predator_pos.first - prey_pos.first) / MAX_X);
-        features.push_back(std::abs(predator_pos.second - prey_pos.second) / MAX_Y);
-
-        // Action features - normalized using MAX_VELOCITY
-        features.push_back(action_x / MAX_VELOCITY);
-        features.push_back(action_y / MAX_VELOCITY);
-
-        // Cross features - normalized
-        features.push_back((action_x * (predator_pos.first - prey_pos.first)) / (MAX_X * MAX_VELOCITY));
-        features.push_back((action_y * (predator_pos.second - prey_pos.second)) / (MAX_Y * MAX_VELOCITY));
-
-        // Bias term
-        features.push_back(1.0);
+        features.push_back((my_speed - tag_speed) / MAX_VELOCITY);
+        features.push_back(action_magnitude / MAX_VELOCITY);
+        features.push_back(my_pos.first / MAX_X);
+        features.push_back(my_pos.second / MAX_Y);
 
         return features;
     };
 
-    int feature_dim = 12;
+    int feature_dim = 6;  // Total number of features
     auto approximator = new LinearFunctionApproximator<State, Action>(feature_dim, feature_extractor);
 
     auto value_strategy = new ApproximationValueStrategy<State, Action>();
@@ -100,7 +107,7 @@ inline int taggame_main() {
         std::cerr << "Failed to save approximator weights: " << e.what() << std::endl;
     }
 
-    serialize_to_json(policy.optimal(), POLICY_FILE);
+    // serialize_to_json(policy.optimal(), POLICY_FILE);
     std::cout << "Optimal policy saved to " << POLICY_FILE << std::endl;
 
     return 0;
