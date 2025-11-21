@@ -16,7 +16,7 @@ public class SlickGraphicsRunner extends StateBasedGame  {
     protected static final Color TAG_COLOR = Color.red;
     protected static final int TAGGER_SLEEP_TIME_MS = 1000;
     protected static final String RL_PLAYER_NAME = "Sili";
-    protected static final Color RL_PLAYER_COLOR = Color.blue;
+    protected static final Color RL_PLAYER_COLOR = Color.green;
     public static final String TAG_GAME = "Tag Game";
 
     protected static int tag_game_id = 0;
