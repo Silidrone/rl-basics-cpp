@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.example</groupId>
+    <artifactId>se4486</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20231013</version>
+        </dependency>
+        
+        <!-- Local JAR dependencies -->
+        <dependency>
+            <groupId>math.geom2d</groupId>
+            <artifactId>javaGeom</artifactId>
+            <version>0.11.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/geom2D/javaGeom-0.11.1.jar</systemPath>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.newdawn.slick</groupId>
+            <artifactId>slick</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/slick2D/slick.jar</systemPath>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl</artifactId>
+            <version>2.9.3</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/slick2D/lwjgl.jar</systemPath>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl_util</artifactId>
+            <version>2.9.3</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/slick2D/lwjgl_util.jar</systemPath>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>taggame.SlickGraphicsRunner</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>java.library.path</key>
+                            <value>${project.basedir}/natives</value>
+                        </systemProperty>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
